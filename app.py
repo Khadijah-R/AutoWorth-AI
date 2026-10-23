@@ -44,16 +44,37 @@ hr { border-color:#E4EAF2; }
 </style>
 """, unsafe_allow_html=True)
 
+import os
+import tempfile
+import urllib.request
+
+MODEL_URL = "https://github.com/Khadijah-R/AutoWorth-AI/releases/download/v1.0.0/autoworth_model_compressed.pkl"
+PREPROCESSOR_URL = "https://github.com/Khadijah-R/AutoWorth-AI/releases/download/v1.0.0/autoworth_preprocessor.pkl"
+
 @st.cache_resource
 def load_artifacts():
-    model = joblib.load("autoworth_model.pkl")
-    preprocessor = joblib.load("autoworth_preprocessor.pkl")
+    # Cache downloaded files in the system temporary directory so they
+    # are downloaded once and reused across Streamlit reruns.
+    cache_dir = os.path.join(tempfile.gettempdir(), "autoworth_ai")
+    os.makedirs(cache_dir, exist_ok=True)
+
+    model_path = os.path.join(cache_dir, "autoworth_model_compressed.pkl")
+    preprocessor_path = os.path.join(cache_dir, "autoworth_preprocessor.pkl")
+
+    if not os.path.exists(model_path):
+        urllib.request.urlretrieve(MODEL_URL, model_path)
+
+    if not os.path.exists(preprocessor_path):
+        urllib.request.urlretrieve(PREPROCESSOR_URL, preprocessor_path)
+
+    model = joblib.load(model_path)
+    preprocessor = joblib.load(preprocessor_path)
     return model, preprocessor
 
 try:
     model, preprocessor = load_artifacts()
 except Exception as exc:
-    st.error("The trained model files could not be loaded. Place `autoworth_model.pkl` and `autoworth_preprocessor.pkl` in the same folder as `app.py`.")
+    st.error("The trained model files could not be downloaded or loaded. Check that the GitHub Release is published and both assets are available.")
     st.caption(f"Technical detail: {exc}")
     st.stop()
 
